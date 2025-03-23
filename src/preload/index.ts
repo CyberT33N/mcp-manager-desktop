@@ -5,11 +5,16 @@ import { IPC_CHANNELS } from '../shared/constants'
 // Custom APIs for renderer
 const api = {
   mcpm: {
-    install: (packageName: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, packageName),
-    uninstall: (packageName: string): Promise<unknown> =>
-      ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, packageName),
+    install: (packageName: string, client?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, packageName, client),
+    uninstall: (packageName: string, client?: string): Promise<unknown> =>
+      ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, packageName, client),
     list: (): Promise<unknown> => ipcRenderer.invoke(IPC_CHANNELS.MCPM_LIST)
+  },
+  settings: {
+    get: (): Promise<unknown> => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
+    set: (settings: Record<string, unknown>): Promise<unknown> => 
+      ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET, settings)
   }
 }
 

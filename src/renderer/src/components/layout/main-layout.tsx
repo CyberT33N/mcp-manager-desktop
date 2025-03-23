@@ -1,5 +1,5 @@
 import React from 'react'
-import { Menu, Home, Search, Server } from 'lucide-react'
+import { Menu, Home, Search, Server, Settings } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
@@ -24,17 +24,17 @@ const menuItems = [
     title: 'My Servers',
     icon: Server,
     href: '/hosts'
-  }
+  },
   // {
   //   title: 'Chat',
   //   icon: MessageSquare,
   //   href: '/chat'
   // },
-  // {
-  //   title: 'Settings',
-  //   icon: Settings,
-  //   href: '/settings'
-  // }
+  {
+    title: 'Settings',
+    icon: Settings,
+    href: '/settings'
+  }
 ]
 
 export function MainLayout({ children }: { children: React.ReactNode }): JSX.Element {

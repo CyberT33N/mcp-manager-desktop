@@ -4,11 +4,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Check, Download, Loader2, Trash } from 'lucide-react'
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSecureImage } from '@/hooks/useSecureImage'
 import { RegistryMCPServerItem } from '@shared/types'
-import { IPC_CHANNELS } from '@shared/constants'
+import { IPC_CHANNELS, ClientType } from '@shared/constants'
 import { toast } from '@/components/ui/use-toast'
 
 export type InstallStatus = 'install' | 'installing' | 'installed'
@@ -36,12 +36,27 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
     isInstalled ? 'installed' : 'install'
   )
   const [buttonHovered, setButtonHovered] = useState(false)
+  const [clientSetting, setClientSetting] = useState<ClientType>('cursor')
+  
   const onError = useCallback((error: Error) => {
     console.error('Failed to load server logo:', error)
   }, [])
   const { imageSrc } = useSecureImage(logoUrl!, {
     onError
   })
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await window.api.settings.get() as { client: ClientType }
+        setClientSetting(settings.client)
+      } catch (error) {
+        console.error('Failed to load client setting:', error)
+      }
+    }
+
+    loadSettings()
+  }, [])
 
   const handleCardClick = () => {
     navigate(`/discover/${id}`)
@@ -61,11 +76,11 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
         
         // Try first method (using api object)
         try {
-          await window.api.mcpm.uninstall(id)
+          await window.api.mcpm.uninstall(id, clientSetting)
         } catch (apiError) {
           console.warn('⚠️ Failed with api.mcpm.uninstall, trying alternative method:', apiError)
           // Fallback to direct IPC invocation
-          await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, id)
+          await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, id, clientSetting)
         }
         
         console.log(`✅ Successfully uninstalled server: ${id}`)
@@ -90,7 +105,7 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
     setInstallStatus('installing')
     
     try {
-      console.log(`🚀 Installing server: ${id}`)
+      console.log(`🚀 Installing server: ${id} with client: ${clientSetting}`)
       
       // Set a timeout to prevent infinite loading state
       const timeoutId = setTimeout(() => {
@@ -109,11 +124,11 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
       
       // Try first method (using api object)
       try {
-        await window.api.mcpm.install(id)
+        await window.api.mcpm.install(id, clientSetting)
       } catch (apiError) {
         console.warn('⚠️ Failed with api.mcpm.install, trying alternative method:', apiError)
         // Fallback to direct IPC invocation
-        await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, id)
+        await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, id, clientSetting)
       }
       
       // Clear timeout on successful installation

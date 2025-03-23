@@ -1,4 +1,5 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card'
+import { ClientSelector } from '../components/ClientSelector'
 
 export default function SettingsPage(): JSX.Element {
   return (
@@ -8,8 +9,8 @@ export default function SettingsPage(): JSX.Element {
           <CardTitle>Settings</CardTitle>
           <CardDescription>Configure your application preferences</CardDescription>
         </CardHeader>
-        <CardContent>
-          <p>Settings interface coming soon...</p>
+        <CardContent className="space-y-6">
+          <ClientSelector />
         </CardContent>
       </Card>
     </div>

@@ -1,17 +1,19 @@
 import { ipcMain } from 'electron'
-import { IPC_CHANNELS } from '@shared/constants'
+import { IPC_CHANNELS, ClientType } from '@shared/constants'
 import { dependencyService, DependencyName } from '@mcpm/sdk'
 import { exec, execSync } from 'child_process'
 import { promisify } from 'util'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
+import { getClientSetting } from './settings'
 
 const execAsync = promisify(exec)
 
 // Smithery CLI command - use npx instead of direct smithery command
 const SMITHERY_CMD = 'npx -y @smithery/cli@latest'
-const SMITHERY_CLIENT = '--client cursor'
+// Client option will be dynamically determined from settings
+// const SMITHERY_CLIENT = '--client cursor'
 
 interface McpmServer {
   id: string
@@ -19,6 +21,7 @@ interface McpmServer {
   installedDate: string
   status: 'enabled' | 'disabled'
   version: string
+  client?: ClientType // Store the client used for installation
 }
 
 // File to store installed servers
@@ -139,7 +142,7 @@ export function setupMcpmHandlers() {
   })
   
   console.log('📝 Registering MCPM_INSTALL IPC handler:', IPC_CHANNELS.MCPM_INSTALL)
-  ipcMain.handle(IPC_CHANNELS.MCPM_INSTALL, async (_, packageName: string) => {
+  ipcMain.handle(IPC_CHANNELS.MCPM_INSTALL, async (_, packageName: string, clientOverride?: ClientType) => {
     console.log(`📦 Installing package: ${packageName}`)
     try {
       // Check if Smithery CLI is accessible
@@ -150,8 +153,12 @@ export function setupMcpmHandlers() {
         throw new Error("Node.js/npm benötigt! Bitte installieren Sie Node.js und führen Sie den Befehl 'npx -y @smithery/cli@latest' manuell aus.")
       }
       
+      // Get client setting or use override if provided
+      const client = clientOverride || await getClientSetting()
+      const SMITHERY_CLIENT = `--client ${client}`
+      
       // Log the start of installation
-      console.log(`🔄 Installing server using Smithery CLI via npx: ${packageName}`)
+      console.log(`🔄 Installing server using Smithery CLI via npx: ${packageName} with client: ${client}`)
       
       // Versuche zuerst mit execSync für bessere Behandlung von interaktiven Prompts
       try {
@@ -191,7 +198,7 @@ export function setupMcpmHandlers() {
             // Versuche es mit spawn für bessere stdin-Kontrolle
             console.log(`🔄 Versuche Installation mit spawn für bessere Prompt-Behandlung...`)
             const { spawnSync } = require('child_process');
-            const args = ['--yes', '-y', '@smithery/cli@latest', 'install', packageName, '--client', 'cursor', '--yes'];
+            const args = ['--yes', '-y', '@smithery/cli@latest', 'install', packageName, '--client', client, '--yes'];
             
             const result = spawnSync('npx', args, {
               timeout: 60000,
@@ -320,20 +327,22 @@ export function setupMcpmHandlers() {
         name: packageName.split('/').pop() || packageName,
         installedDate: new Date().toISOString(),
         status: 'enabled',
-        version: '1.0.0' // Version might be available in the installation output
+        version: '1.0.0', // Version might be available in the installation output
+        client // Store the client used for installation
       }
       
       // Save updated server list
       await saveInstalledServers(savedServers)
       
       // Log successful installation
-      console.log(`✅ Successfully installed ${packageName}`)
+      console.log(`✅ Successfully installed ${packageName} with client ${client}`)
       
       return { 
         success: true,
         packageName,
         installedAt: new Date().toISOString(),
-        version: '1.0.0'
+        version: '1.0.0',
+        client
       }
     } catch (error) {
       console.error(`❌ Error installing ${packageName}:`, error)
@@ -351,7 +360,7 @@ export function setupMcpmHandlers() {
   })
   
   console.log('📝 Registering MCPM_REMOVE IPC handler:', IPC_CHANNELS.MCPM_REMOVE)
-  ipcMain.handle(IPC_CHANNELS.MCPM_REMOVE, async (_, packageName: string) => {
+  ipcMain.handle(IPC_CHANNELS.MCPM_REMOVE, async (_, packageName: string, clientOverride?: ClientType) => {
     console.log(`🗑️ Removing package: ${packageName}`)
     try {
       // Check if Smithery CLI is accessible
@@ -361,6 +370,20 @@ export function setupMcpmHandlers() {
         console.error(`❌ Smithery CLI nicht über npx erreichbar`)
         throw new Error("Node.js/npm benötigt! Bitte installieren Sie Node.js und führen Sie den Befehl 'npx -y @smithery/cli@latest' manuell aus.")
       }
+      
+      // Load current installed servers to check if we have client info
+      const savedServers = await loadInstalledServers()
+      
+      // Determine which client to use for uninstallation
+      // 1. Use the client specified in the override parameter
+      // 2. Use the client that was used for installation if available
+      // 3. Fallback to the current default client setting
+      let client = clientOverride || 
+                  (savedServers[packageName] && savedServers[packageName].client) || 
+                  await getClientSetting()
+      
+      const SMITHERY_CLIENT = `--client ${client}`
+      console.log(`🔄 Uninstalling package ${packageName} with client: ${client}`)
       
       // Execute the smithery uninstall command if available via npx
       try {
@@ -438,10 +461,7 @@ export function setupMcpmHandlers() {
         }
       }
       
-      // Load current installed servers
-      const savedServers = await loadInstalledServers()
-      
-      // Remove the server
+      // Remove the server from local storage
       if (savedServers[packageName]) {
         delete savedServers[packageName]
         

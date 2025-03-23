@@ -11,5 +11,20 @@ export const IPC_CHANNELS = {
   MCPM_REMOVE: 'mcpm::remove',
   MCPM_ENABLE: 'mcpm::enable',
   MCPM_DISABLE: 'mcpm::disable',
+  SETTINGS_GET: 'settings::get',
+  SETTINGS_SET: 'settings::set',
 } as const
+
+// Valid client options for Smithery CLI
+export const VALID_CLIENTS = [
+  'claude',
+  'cline',
+  'windsurf',
+  'roo-cline',
+  'witsy',
+  'enconvo',
+  'cursor'
+] as const
+
+export type ClientType = typeof VALID_CLIENTS[number]
   

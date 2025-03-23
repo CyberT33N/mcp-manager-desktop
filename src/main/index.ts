@@ -6,6 +6,7 @@ import icon from '../../resources/icon.svg?asset'
 import { setupRegistryHandlers } from './handlers/registry'
 import { setupImageHandlers } from './handlers/image'
 import { setupMcpmHandlers } from './handlers/mcpm'
+import { setupSettingsHandlers } from './handlers/settings'
 import { IPC_CHANNELS } from '@shared/constants'
 
 let mainWindow: BrowserWindow | null = null
@@ -105,6 +106,7 @@ app.whenReady().then(() => {
   setupRegistryHandlers()
   setupMcpmHandlers()
   setupImageHandlers()
+  setupSettingsHandlers()
   
   // Register MCPM IPC handlers
   // ipcMain.handle('mcpm:install', async (_, packageName) => {
