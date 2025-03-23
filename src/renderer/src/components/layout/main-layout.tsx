@@ -5,6 +5,7 @@ import { Button } from '../ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '../ui/sheet'
 import { Link, useLocation } from 'react-router-dom'
 import electronLogo from '../../assets/electron.svg'
+import { Toaster } from '../ui/toaster'
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -60,6 +61,9 @@ export function MainLayout({ children }: { children: React.ReactNode }): JSX.Ele
       <div className="flex-1 lg:pl-[240px]">
         <main className="h-screen overflow-y-auto pt-16 lg:pt-4 px-4">{children}</main>
       </div>
+      
+      {/* Toast notifications */}
+      <Toaster />
     </div>
   )
 }

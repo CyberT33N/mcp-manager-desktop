@@ -8,6 +8,8 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSecureImage } from '@/hooks/useSecureImage'
 import { RegistryMCPServerItem } from '@shared/types'
+import { IPC_CHANNELS } from '@shared/constants'
+import { toast } from '@/components/ui/use-toast'
 
 export type InstallStatus = 'install' | 'installing' | 'installed'
 
@@ -43,6 +45,119 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
 
   const handleCardClick = () => {
     navigate(`/discover/${id}`)
+  }
+
+  const handleInstallClick = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    
+    // Prevent action if already installing
+    if (installStatus === 'installing') return
+    
+    // If already installed, handle uninstall
+    if (installStatus === 'installed') {
+      try {
+        console.log(`🗑️ Uninstalling server: ${id}`)
+        setInstallStatus('installing') // Show loading state for uninstall
+        
+        // Try first method (using api object)
+        try {
+          await window.api.mcpm.uninstall(id)
+        } catch (apiError) {
+          console.warn('⚠️ Failed with api.mcpm.uninstall, trying alternative method:', apiError)
+          // Fallback to direct IPC invocation
+          await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, id)
+        }
+        
+        console.log(`✅ Successfully uninstalled server: ${id}`)
+        setInstallStatus('install')
+        toast({
+          title: "Uninstallation successful",
+          description: `${title} has been uninstalled successfully.`,
+        })
+      } catch (error) {
+        console.error(`❌ Failed to uninstall server: ${id}`, error)
+        setInstallStatus('installed') // Reset to installed state
+        toast({
+          title: "Uninstallation failed",
+          description: `Failed to uninstall ${title}. Please try again.`,
+          variant: "destructive"
+        })
+      }
+      return
+    }
+    
+    // Set UI to installing state
+    setInstallStatus('installing')
+    
+    try {
+      console.log(`🚀 Installing server: ${id}`)
+      
+      // Set a timeout to prevent infinite loading state
+      const timeoutId = setTimeout(() => {
+        // Direkte Prüfung des aktuellen Status-Werts
+        const currentStatus = document.getElementById(`install-status-${id}`)?.dataset.status;
+        if (currentStatus === 'installing') {
+          console.error(`⏱️ Installation timeout for: ${id}`)
+          setInstallStatus('install')
+          toast({
+            title: "Installation timeout",
+            description: `The installation is taking too long. Please try again or check the logs.`,
+            variant: "destructive"
+          })
+        }
+      }, 120000) // 2 minutes timeout
+      
+      // Try first method (using api object)
+      try {
+        await window.api.mcpm.install(id)
+      } catch (apiError) {
+        console.warn('⚠️ Failed with api.mcpm.install, trying alternative method:', apiError)
+        // Fallback to direct IPC invocation
+        await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, id)
+      }
+      
+      // Clear timeout on successful installation
+      clearTimeout(timeoutId)
+      
+      console.log(`✅ Successfully installed server: ${id}`)
+      setInstallStatus('installed')
+      toast({
+        title: "Installation successful",
+        description: `${title} has been installed successfully.`,
+      })
+    } catch (error) {
+      console.error(`❌ Failed to install server: ${id}`, error)
+      setInstallStatus('install') // Reset button to install state
+      
+      // Check if the error is about Smithery CLI not being installed
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      
+      if (errorMsg.includes('timeout')) {
+        toast({
+          title: "Installation Timeout",
+          description: `Die Installation wurde abgebrochen, weil sie zu lange dauerte. Bitte versuche es erneut oder führe den Befehl manuell aus.`,
+          variant: "destructive"
+        })
+      } else if (errorMsg.includes('SIGINT') || errorMsg.includes('130')) {
+        toast({
+          title: "Installation Interaktion",
+          description: `Die Installation benötigt manuellen Input. Bitte führe den Befehl manuell in einem Terminal aus.`,
+          variant: "destructive"
+        })
+      } else if (errorMsg.includes('Smithery CLI') || errorMsg.includes('Node.js/npm')) {
+        toast({
+          title: "Node.js/npm benötigt",
+          description: `Bitte stelle sicher, dass Node.js und npm installiert sind. Die Installation verwendet 'npx -y @smithery/cli@latest'.`,
+          variant: "destructive"
+        })
+      } else {
+        toast({
+          title: "Installation failed",
+          description: `Failed to install ${title}. Error: ${errorMsg.slice(0, 100)}${errorMsg.length > 100 ? '...' : ''}`,
+          variant: "destructive"
+        })
+      }
+    }
   }
 
   const getButtonContent = () => {
@@ -114,10 +229,9 @@ export const ServerCard: React.FC<MCPServerCardData> = ({
             variant={installStatus === 'installed' ? 'outline' : 'default'}
             size="sm"
             className="w-full"
-            onClick={(e) => {
-              e.stopPropagation()
-              setInstallStatus(installStatus === 'install' ? 'installing' : 'install')
-            }}
+            id={`install-status-${id}`}
+            data-status={installStatus}
+            onClick={handleInstallClick}
             onMouseEnter={() => setButtonHovered(true)}
             onMouseLeave={() => setButtonHovered(false)}
           >

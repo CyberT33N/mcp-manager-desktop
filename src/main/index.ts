@@ -5,6 +5,7 @@ import { dependencyService, DependencyName } from '@mcpm/sdk'
 import icon from '../../resources/icon.svg?asset'
 import { setupRegistryHandlers } from './handlers/registry'
 import { setupImageHandlers } from './handlers/image'
+import { setupMcpmHandlers } from './handlers/mcpm'
 import { IPC_CHANNELS } from '@shared/constants'
 
 let mainWindow: BrowserWindow | null = null
@@ -20,7 +21,7 @@ function createWindow(): void {
           "img-src 'self' data: https: http:;",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval';",
           "style-src 'self' 'unsafe-inline';",
-          "connect-src 'self' https://registry.mcphub.io https://app.mcphub.net;"
+          "connect-src 'self' https://registry.mcphub.io https://app.mcphub.net https://registry.smithery.ai https://*.smithery.ai;"
         ].join(' ')
       }
     })
@@ -41,8 +42,6 @@ function createWindow(): void {
       webSecurity: false // disable web security for development
     }
   })
-
-  setupImageHandlers()
 
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
@@ -82,7 +81,7 @@ ipcMain.on(IPC_CHANNELS.CHECK_DEPENDENCIES, async () => {
   }
 })
 
-ipcMain.on(IPC_CHANNELS.INSTALL_DEPENDENCY, async (_, name: string) => {
+ipcMain.on(IPC_CHANNELS.INSTALL_DEPENDENCY, async (_, name: DependencyName) => {
   if (!mainWindow) return
   console.log(`Installing ${name}`)
   try {
@@ -101,6 +100,12 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
+  // Setup all IPC handlers before creating the window
+  console.log('🚀 Setting up all IPC handlers')
+  setupRegistryHandlers()
+  setupMcpmHandlers()
+  setupImageHandlers()
+  
   // Register MCPM IPC handlers
   // ipcMain.handle('mcpm:install', async (_, packageName) => {
   //   return await mcpmService.install(packageName)
@@ -123,9 +128,6 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
-
-  // Setup handlers
-  setupRegistryHandlers()
 
   createWindow()
 

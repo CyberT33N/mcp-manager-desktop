@@ -14,6 +14,8 @@ import {
   Zap,
   Globe,
   Cloud,
+  Link,
+  Copy,
 } from 'lucide-react'
 import { SecureImage } from '@/components/ui/secure-image'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -21,6 +23,13 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { IPC_CHANNELS } from '@shared/constants'
+import { useToast } from '@/components/ui/use-toast'
+
+// Helper function to create Smithery URL
+function createSmitheryUrl(baseUrl: string, config: any): string {
+  const encodedConfig = btoa(JSON.stringify(config))
+  return `${baseUrl}?config=${encodedConfig}`
+}
 
 export function ServerDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -28,6 +37,7 @@ export function ServerDetailPage() {
   const [server, setServer] = useState<ServerRegistryItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const fetchServerDetail = async () => {
     if (!id) return
@@ -46,6 +56,27 @@ export function ServerDetailPage() {
   useEffect(() => {
     fetchServerDetail()
   }, [id])
+
+  // Function to copy websocket URL to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast({
+          title: "Copied to clipboard",
+          description: "The URL has been copied to your clipboard.",
+          duration: 3000,
+        })
+      })
+      .catch((err) => {
+        console.error('Failed to copy: ', err)
+        toast({
+          title: "Failed to copy",
+          description: "Could not copy to clipboard",
+          variant: "destructive",
+          duration: 3000,
+        })
+      })
+  }
 
   if (error) {
     return (
@@ -151,6 +182,7 @@ export function ServerDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="features">Features</TabsTrigger>
           <TabsTrigger value="configuration">Configuration</TabsTrigger>
+          {server.smithery && <TabsTrigger value="smithery">Smithery</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -343,6 +375,88 @@ export function ServerDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {server.smithery && (
+          <TabsContent value="smithery" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Smithery Registry Information</CardTitle>
+                <CardDescription>Connection details for this Smithery server</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">Qualified Name</h3>
+                  <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2.5 rounded-lg font-medium">
+                    {server.smithery.qualifiedName}
+                  </div>
+                </div>
+
+                {server.smithery.deploymentUrl && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Deployment URL</h3>
+                    <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2.5 rounded-lg font-medium flex justify-between items-center">
+                      <span className="truncate">{server.smithery.deploymentUrl}</span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => copyToClipboard(server.smithery.deploymentUrl)}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {server.smithery.connections && server.smithery.connections.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-3">Connections</h3>
+                    {server.smithery.connections.map((connection, index) => (
+                      <Card key={index} className="bg-gray-50 border-gray-200">
+                        <CardHeader className="py-3">
+                          <CardTitle className="text-base">{connection.type.toUpperCase()} Connection</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 py-3">
+                          {connection.url && (
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 mb-1">URL</h4>
+                              <div className="text-sm text-gray-600 bg-white px-3 py-2 rounded-md font-medium flex justify-between items-center">
+                                <span className="truncate">{connection.url}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    // For WebSocket connections, create a properly formatted URL
+                                    if (connection.type === 'ws') {
+                                      const wsUrl = createSmitheryUrl(connection.url!, {})
+                                      copyToClipboard(wsUrl)
+                                    } else {
+                                      copyToClipboard(connection.url!)
+                                    }
+                                  }}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {connection.configSchema && (
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 mb-1">Config Schema</h4>
+                              <pre className="text-xs overflow-auto bg-white px-3 py-2 rounded-md max-h-[200px]">
+                                {JSON.stringify(connection.configSchema, null, 2)}
+                              </pre>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

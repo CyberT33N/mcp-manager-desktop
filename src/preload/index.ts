@@ -1,14 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { IPC_CHANNELS } from '../shared/constants'
 
 // Custom APIs for renderer
 const api = {
   mcpm: {
     install: (packageName: string): Promise<unknown> =>
-      ipcRenderer.invoke('mcpm:install', packageName),
+      ipcRenderer.invoke(IPC_CHANNELS.MCPM_INSTALL, packageName),
     uninstall: (packageName: string): Promise<unknown> =>
-      ipcRenderer.invoke('mcpm:uninstall', packageName),
-    list: (): Promise<unknown> => ipcRenderer.invoke('mcpm:list')
+      ipcRenderer.invoke(IPC_CHANNELS.MCPM_REMOVE, packageName),
+    list: (): Promise<unknown> => ipcRenderer.invoke(IPC_CHANNELS.MCPM_LIST)
   }
 }
 

@@ -8,14 +8,26 @@ import { IPC_CHANNELS } from '@shared/constants'
 import { MCPServerCardData } from '@/types/server'
 import { RegistryMCPServerItem } from '@shared/types'
 
+interface McpmServer {
+  id: string
+  name: string
+  installedDate: string
+  status: 'enabled' | 'disabled'
+  version: string
+}
+
 export function DiscoverPage() {
   const [servers, setServers] = useState<MCPServerCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [installedServers, setInstalledServers] = useState<McpmServer[]>([])
 
   useEffect(() => {
-    fetchServers()
+    // Fetch installed servers first
+    fetchInstalledServers().then(() => {
+      fetchServers()
+    })
   }, [])
 
   useEffect(() => {
@@ -26,17 +38,41 @@ export function DiscoverPage() {
     return () => clearTimeout(debounceTimeout)
   }, [searchQuery])
 
+  const fetchInstalledServers = async () => {
+    try {
+      console.log(`🔍 Fetching installed servers for comparison...`)
+      const data = await window.electron.ipcRenderer.invoke(IPC_CHANNELS.MCPM_LIST)
+      console.log(`✅ Received installed server data:`, data)
+      setInstalledServers(data || [])
+    } catch (err) {
+      console.error(`❌ Error fetching installed servers:`, err)
+      // Non-critical error, don't show to user
+    }
+  }
+
   const fetchServers = async (query: string = '') => {
     try {
       setLoading(true)
       setError(null)
+      console.log(`🔍 Fetching servers with query: "${query}"`)
+      
       const data: RegistryMCPServerItem[] = await window.electron.ipcRenderer.invoke(IPC_CHANNELS.FETCH_REGISTRY, query)
       
-      setServers(data.map(registryInfo => ({
-        registryInfo,
-        isInstalled: false,
-      })))
+      console.log(`✅ Received server data:`, data)
+      console.log(`📊 Number of servers received: ${data.length}`)
+      
+      // Check if each server is already installed
+      setServers(data.map(registryInfo => {
+        const isInstalled = installedServers.some(
+          installed => installed.id === registryInfo.id
+        )
+        return {
+          registryInfo,
+          isInstalled,
+        }
+      }))
     } catch (err) {
+      console.error(`❌ Error fetching servers:`, err)
       setError(err instanceof Error ? err.message : 'Failed to fetch servers')
     } finally {
       setLoading(false)
@@ -44,7 +80,10 @@ export function DiscoverPage() {
   }
 
   const handleRefresh = () => {
-    fetchServers(searchQuery)
+    // Refresh both installed servers and registry servers
+    fetchInstalledServers().then(() => {
+      fetchServers(searchQuery)
+    })
   }
 
   const LoadingSkeleton = () => (
