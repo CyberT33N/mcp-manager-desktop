@@ -22,7 +22,7 @@ function createWindow(): void {
           "img-src 'self' data: https: http:;",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval';",
           "style-src 'self' 'unsafe-inline';",
-          "connect-src 'self' https://registry.mcphub.io https://app.mcphub.net https://registry.smithery.ai https://*.smithery.ai;"
+          "connect-src 'self' https://registry.smithery.ai https://*.smithery.ai;"
         ].join(' ')
       }
     })

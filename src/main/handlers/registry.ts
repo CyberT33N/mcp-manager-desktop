@@ -12,7 +12,7 @@ export function setupRegistryHandlers() {
     console.log(`✅ Smithery API-Key gefunden (Länge: ${VITE_SMITHERY_API_KEY.length})`)
     console.log(`🔑 Key beginnt mit: ${VITE_SMITHERY_API_KEY.substring(0, 4)}...`)
   } else {
-    console.log(`❌ Kein Smithery API-Key konfiguriert - verwende MCPHub als Fallback`)
+    console.log(`❌ Kein Smithery API-Key konfiguriert`)
     console.log(`💡 Tipp: Setze VITE_SMITHERY_API_KEY in .env.local`)
   }
   
@@ -25,21 +25,6 @@ export function setupRegistryHandlers() {
       params.append('pageSize', '20')
       
       const url = `${SMITHERY_BASE_URL}/servers?${params.toString()}`
-      
-      // If API key is missing, use MCPHub as fallback
-      if (!VITE_SMITHERY_API_KEY) {
-        console.log(`🔄 Verwende MCPHub für Serverabfrage: "${query || ''}"`)
-        const mcphubUrl = query
-          ? `https://registry.mcphub.io/search?q=${encodeURIComponent(query)}`
-          : 'https://registry.mcphub.io/registry'
-        const response = await fetch(mcphubUrl)
-        if (!response.ok) {
-          throw new Error(`❌ Fehler beim Abrufen von MCPHub: ${response.status} ${response.statusText}`)
-        }
-        const data = await response.json()
-        console.log(`✅ ${data.length || 0} Server von MCPHub erhalten`)
-        return data as RegistryMCPServerItem[]
-      }
       
       console.log(`🔍 Suche Server von Smithery: "${query || ''}"`)
       
@@ -84,16 +69,6 @@ export function setupRegistryHandlers() {
 
   ipcMain.handle(IPC_CHANNELS.FETCH_SERVER_DETAIL, async (_, id: string) => {
     try {
-      // If API key is missing, use MCPHub as fallback
-      if (!VITE_SMITHERY_API_KEY) {
-        console.log(`🔄 Verwende MCPHub für Server-Details: "${id}"`)
-        const response = await fetch(`https://registry.mcphub.io/registry/${id}`)
-        if (!response.ok) {
-          throw new Error(`❌ Fehler beim Abrufen von MCPHub: ${response.status} ${response.statusText}`)
-        }
-        return await response.json()
-      }
-      
       console.log(`🔍 Suche Server-Details von Smithery: "${id}"`)
       
       const response = await fetch(`${SMITHERY_BASE_URL}/servers/${id}`, {
