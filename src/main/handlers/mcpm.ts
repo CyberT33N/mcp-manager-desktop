@@ -158,7 +158,7 @@ export function setupMcpmHandlers() {
         console.log(`🔄 Executing command: ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT}`)
         
         // Mit execSync und Shell-Umgebung - verwende --yes flag und input pipe
-        const cmd = `printf "y\ny\ny\ny\nn\ny\ny\ny\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT} --yes`;
+        const cmd = `printf "y\ny\ny\ny\nn\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT} --yes`;
         console.log(`🔄 Executing command: ${cmd}`);
         const stdout = execSync(cmd, {
           timeout: 60000, // 60 Sekunden Timeout
@@ -197,7 +197,7 @@ export function setupMcpmHandlers() {
               timeout: 60000,
               stdio: ['pipe', 'pipe', 'pipe'],
               // Antworte mit "n" auf die Neustart-Frage, aber "y" auf alles andere
-              input: 'y\ny\nn\ny\ny\ny\ny\ny\n', 
+              input: 'y\ny\ny\nn\n', 
               encoding: 'utf8',
               env: {
                 ...process.env,
@@ -238,7 +238,7 @@ export function setupMcpmHandlers() {
               // Versuche es mit echo für alle Prompts, antworten mit n auf Neustart-Frage
               const { stdout, stderr } = await execAsync(
                 // "y" für alle Prompts, aber "n" für die Neustart-Frage
-                `printf "y\ny\ny\ny\nn\ny\ny\ny\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT}`, 
+                `printf "y\ny\ny\nn\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT}`, 
                 { timeout: 60000 }
               );
               console.log(`📊 Echo pipe installation output:`, stdout);
@@ -280,7 +280,7 @@ export function setupMcpmHandlers() {
           console.log(`⚠️ Sync Installation fehlgeschlagen, versuche mit execAsync...`)
           try {
             // Mit printf für alle Prompts, aber "n" für die Neustart-Frage
-            const cmd = `printf "y\ny\ny\ny\nn\ny\ny\ny\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT} --yes`;
+            const cmd = `printf "y\ny\ny\nn\n" | ${SMITHERY_CMD} install ${packageName} ${SMITHERY_CLIENT} --yes`;
             console.log(`🔄 Executing command (async): ${cmd}`);
             
             const { stdout, stderr } = await execAsync(cmd, {
@@ -367,7 +367,7 @@ export function setupMcpmHandlers() {
         console.log(`🔄 Executing uninstall command with execSync: ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT}`)
         
         // Mit execSync und Shell-Umgebung - verwende --yes flag
-        const uninstallCmd = `printf "y\ny\ny\nn\ny\ny\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
+        const uninstallCmd = `printf "y\ny\ny\nn\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
         console.log(`🔄 Executing command: ${uninstallCmd}`);
         const stdout = execSync(uninstallCmd, {
           timeout: 60000, // 60 Sekunden Timeout
@@ -398,7 +398,7 @@ export function setupMcpmHandlers() {
           
           try {
             // Versuche es mit echo für alle Prompts
-            const uninstallCmd = `printf "y\ny\ny\nn\ny\ny\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
+            const uninstallCmd = `printf "y\ny\ny\nn\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
             console.log(`🔄 Executing command: ${uninstallCmd}`);
             
             const { stdout, stderr } = await execAsync(uninstallCmd, {
@@ -419,7 +419,7 @@ export function setupMcpmHandlers() {
         // Fallback auf async Methode
         try {
           console.log(`⚠️ Sync Uninstall fehlgeschlagen, versuche mit execAsync...`)
-          const uninstallCmd = `printf "y\ny\ny\nn\ny\ny\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
+          const uninstallCmd = `printf "y\ny\ny\nn\n" | ${SMITHERY_CMD} uninstall ${packageName} ${SMITHERY_CLIENT} --yes`;
           console.log(`🔄 Executing command (async): ${uninstallCmd}`);
           
           const { stdout, stderr } = await execAsync(uninstallCmd, {
