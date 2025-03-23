@@ -11,7 +11,7 @@ import { getClientSetting } from './settings'
 const execAsync = promisify(exec)
 
 // Smithery CLI command - use npx instead of direct smithery command
-const SMITHERY_CMD = 'npx -y @smithery/cli@latest'
+const SMITHERY_CMD = 'node /home/t33n/Projects/mcp/cli/smithery-cli/dist/index.js'
 // Client option will be dynamically determined from settings
 // const SMITHERY_CLIENT = '--client cursor'
 
